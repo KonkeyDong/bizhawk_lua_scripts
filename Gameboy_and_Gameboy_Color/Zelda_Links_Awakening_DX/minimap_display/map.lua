@@ -4,15 +4,17 @@ local layout = require("layout")
 local Map = {}
 Map.__index = Map
 
-function Map:new(cell_size)
+function Map:new(cell_size, display_axis)
   local instance = setmetatable({}, { __index = Map })
   
   instance.window = {
     cell_size = cell_size,
-    width  = cell_size * 16,
-    height = cell_size * 17
+    width  = cell_size * 17,
+    height = cell_size * 18
   }
   
+  instance.font_size = (math.floor(math.sqrt(cell_size)) -1) ^ 2 -- default is 12
+
   instance.address = {
     world_map_position = 0xDB54,
     dungeon_position = 0xDBAE,
@@ -35,6 +37,19 @@ function Map:new(cell_size)
     [10] = instance.layout.color_code.graveyard
   }
   
+  instance.display_axis = display_axis
+  instance.axis_labels = {
+    world_map = {},
+    dungeon = {}
+  }
+  for i = 0, 15 do
+    table.insert(instance.axis_labels.world_map, string.format("%X", i))
+  end
+  
+  for i = 0, 7 do
+    table.insert(instance.axis_labels.dungeon, string.format("%X", i))
+  end
+  
   -- blinker
   instance.blinker = Blinker:new(20)
   
@@ -47,8 +62,8 @@ end
 
 function Map:set_picture_box(offset, form_handler)
   self.offset = offset
-  self.pic = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height)
-  forms.drawRectangle(self.pic, 0, offset, self.window.width, self.window.height, nil, "lightgray")
+  self.pic = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height + offset)
+  self:_draw_rectangle(0, offset, self.window.width, self.window.height + offset, nil, "lightgray")
 end
 
 function Map:display_minimap()
@@ -60,6 +75,10 @@ function Map:display_minimap()
 
   self:_draw_grid()
   self:_draw_current_position()
+  
+  if self.display_axis then
+    self:_draw_axis_labels()
+  end
 
   self.blinker:increment()
   
@@ -74,13 +93,14 @@ function Map:_draw_grid()
   if not map then
     return -- no map data found
   end
-  
+    
+  local dimension = self:_cell_size_dimension()
   for row = 1, #map do
     for col = 1, #map[row] do
       color_code = map[row][col]
       background_color = self.cell_background_color[color_code]
       
-      forms.drawRectangle(self.pic, self:_cell_size_dimension() * (col - 1), self:_cell_size_dimension() * (row - 1), self:_cell_size_dimension(), self:_cell_size_dimension(), "black", background_color)
+      self:_draw_rectangle(dimension * (col), dimension * (row - 1), dimension, dimension, "black", background_color)
     end
   end
 end
@@ -99,7 +119,24 @@ function Map:_draw_current_position()
   local color_code = map[row + 1][col + 1] -- Lua doesn't use zero-based indexing...
   local background = self.blinker.blink and self.layout.color_code.link or self.cell_background_color[color_code]
 
-  forms.drawRectangle(self.pic, self:_cell_size_dimension() * col, self:_cell_size_dimension() * row, self:_cell_size_dimension(), self:_cell_size_dimension(), "black", background)
+  local dimension = self:_cell_size_dimension()
+  self:_draw_rectangle(dimension * (col + 1), dimension * row, dimension, dimension, "black", background)
+end
+
+function Map:_draw_axis_labels()
+  local dimension = self:_cell_size_dimension()
+
+  local axis_labels = self:_is_outside() and self.axis_labels.world_map or self.axis_labels.dungeon
+  
+  for i, v in ipairs(axis_labels) do
+    -- Y-Axis
+    self:_draw_rectangle(0, dimension * (i - 1), dimension, dimension, "black", "black") 
+    self:_draw_string(self.pic, 0, (i - 1) * self.window.cell_size, v, "white", "black", 20)
+    
+    -- X-Axis
+    self:_draw_rectangle(dimension * i, dimension * 16, dimension, dimension, "black", "black")
+    self:_draw_string(dimension * i, dimension * 16, v, "white", "black", 20)
+  end
 end
 
 -- returns the position on the world map where Link is currently
@@ -155,6 +192,16 @@ function Map:_cell_size_dimension()
   end
   
   return self.window.cell_size * 2
+end
+
+-- wrapper to draw a rectangle where the inputs are easier to read 
+function Map:_draw_rectangle(x, y, width, height, foreground, background)
+  forms.drawRectangle(self.pic, x, y, width, height, foreground, background) 
+end
+
+-- wrapper to draw text where the inputs are easier to read
+function Map:_draw_string(x, y, message, foreground, background, font_size)
+  forms.drawString(self.pic, x, y, message, foreground, background, font_size)
 end
 
 return Map
