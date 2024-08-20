@@ -49,7 +49,7 @@ end
 function GBC_Controller:set_picture_box(offset, form_handler)
   self.offset = offset
   self.pic = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height)
-  forms.drawRectangle(self.pic, 0, offset, self.window.width, self.window.height, nil, "lightgray")
+  self:_draw_rectangle(0, offset, self.window.width, self.window.height, nil, "lightgray")
 end
 
 function GBC_Controller:display_controller()
@@ -76,28 +76,34 @@ function GBC_Controller:display_controller()
   forms.refresh(self.pic)
 end
 
-function GBC_Controller:refresh()
-  forms.refresh(self.pic)
-end
-
 function GBC_Controller:_draw_direction(x, y, pressed)
   local background = pressed and "black" or "white"
   
-  forms.drawRectangle(self.pic, x, y, self.window.cell_size, self.window.cell_size, "black", background)
+  self:_draw_rectangle(x, y, self.window.cell_size, self.window.cell_size, "black", background)
 end
 
 function GBC_Controller:_draw_start_select(x, y, pressed, message)
   local background = pressed and "black" or "white"
   
-  forms.drawString(self.pic, x - (self.window.cell_size / 5), y - self.window.cell_size, message, "black", "white", self.font_size)
-  forms.drawRectangle(self.pic, x, y, self.window.cell_size, self.window.cell_size / 2, "black", background)
+  self:_draw_string(x - (self.window.cell_size / 5), y - self.window.cell_size, message, "black", "white", self.font_size)
+  self:_draw_rectangle(x, y, self.window.cell_size, self.window.cell_size / 2, "black", background)
 end
 
 function GBC_Controller:_draw_AB(x, y, pressed, message)
   local background = pressed and "purple" or "white"
   
-  forms.drawString(self.pic, x + (self.window.cell_size / 5), y - self.window.cell_size, message, "black", "white", self.font_size)
-  forms.drawRectangle(self.pic, x, y, self.window.cell_size, self.window.cell_size, "purple", background)
+  self:_draw_string(x + (self.window.cell_size / 5), y - self.window.cell_size, message, "black", "white", self.font_size)
+  self:_draw_rectangle(x, y, self.window.cell_size, self.window.cell_size, "purple", background)
+end
+
+-- wrapper to draw a rectangle where the inputs are easier to read 
+function GBC_Controller:_draw_rectangle(x, y, width, height, foreground, background)
+  forms.drawRectangle(self.pic, x, y, width, height, foreground, background) 
+end
+
+-- wrapper to draw text where the inputs are easier to read
+function GBC_Controller:_draw_string(x, y, message, foreground, background, font_size)
+  forms.drawString(self.pic, x, y, message, foreground, background, font_size)
 end
 
 return GBC_Controller
