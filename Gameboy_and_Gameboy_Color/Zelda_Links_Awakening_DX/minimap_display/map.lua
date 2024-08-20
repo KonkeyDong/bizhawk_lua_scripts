@@ -1,52 +1,54 @@
-local Blinker = dofile("./blinker.lua")
-local layout = dofile("./layout.lua")
+local Blinker = require("blinker")
+local layout = require("layout")
 
 local Map = {}
 Map.__index = Map
 
-function Map:new(cell_size, width, height, title)
-  local self = setmetatable({}, { __index = Map })
+function Map:new(cell_size)
+  local instance = setmetatable({}, { __index = Map })
   
-  self.window = {
+  instance.window = {
     cell_size = cell_size,
-    width = width,
-    height = height,
-    title = title
+    width  = cell_size * 16,
+    height = cell_size * 17
   }
   
-  self.address = {
+  instance.address = {
     world_map_position = 0xDB54,
     dungeon_position = 0xDBAE,
     location = 0xDB5F -- 0 = outdoors; 1 = indoors (dungeon, cave, house, etc.)
   }
   
-  self.layout = layout
+  instance.layout = layout
   
-  self.cell_background_color = {
-    [0] = self.layout.color_code.empty,
-    [1] = self.layout.color_code.room,
-    [2] = self.layout.color_code.dungeon_entrance,
-    [3] = self.layout.color_code.instrument,
-    [4] = self.layout.color_code.link,
-    [5] = self.layout.color_code.boss,
-    [6] = self.layout.color_code.dungeon,
-    [7] = self.layout.color_code.water,
-    [8] = self.layout.color_code.forest,
-    [9] = self.layout.color_code.desert,
-    [10] = self.layout.color_code.graveyard
+  instance.cell_background_color = {
+    [0] = instance.layout.color_code.empty,
+    [1] = instance.layout.color_code.room,
+    [2] = instance.layout.color_code.dungeon_entrance,
+    [3] = instance.layout.color_code.instrument,
+    [4] = instance.layout.color_code.link,
+    [5] = instance.layout.color_code.boss,
+    [6] = instance.layout.color_code.dungeon,
+    [7] = instance.layout.color_code.water,
+    [8] = instance.layout.color_code.forest,
+    [9] = instance.layout.color_code.desert,
+    [10] = instance.layout.color_code.graveyard
   }
   
-  -- forms
-  local myForm = forms.newform(self.window.width, self.window.height, self.window.title)
-  -- pic = form handler
-  self.pic = forms.pictureBox(myForm, 0, 0, self.window.width, self.window.height)
-  forms.drawRectangle(self.pic, 0, 0, self.window.width, self.window.height, nil, "lightgray")
-  forms.clear(self.pic, "lightgray")
-  
   -- blinker
-  self.blinker = Blinker:new(20)
+  instance.blinker = Blinker:new(20)
   
-  return self
+  console.writeline("Map has ben instantiated successfully!")
+  console.writeline("Don't forget to call Map:set_picture_box(offset, form_handler) to set the display!")
+  console.writeline("")
+  
+  return instance
+end
+
+function Map:set_picture_box(offset, form_handler)
+  self.offset = offset
+  self.pic = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height)
+  forms.drawRectangle(self.pic, 0, offset, self.window.width, self.window.height, nil, "lightgray")
 end
 
 function Map:display_minimap()
@@ -60,6 +62,7 @@ function Map:display_minimap()
   self:_draw_current_position()
 
   self.blinker:increment()
+  
   forms.refresh(self.pic)
 end
 
