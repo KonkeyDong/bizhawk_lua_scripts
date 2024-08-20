@@ -2,13 +2,16 @@ local Blinker = {}
 Blinker.__index = Blinker
 
 function Blinker:new(blink_delay) 
-  local self = setmetatable({}, { __index = Blinker })
+  local instance = setmetatable({}, { __index = Blinker })
   
-  self.count = 1
-  self.blink_delay = blink_delay
-  self.blink = false
+  instance.count = 1
+  instance.blink_delay = blink_delay
+  instance.blink = false
   
-  return self
+  console.writeline("Blinker has ben instantiated successfully!")
+  console.writeline("")
+  
+  return instance
 end
 
 function Blinker:is_ready_to_blink()

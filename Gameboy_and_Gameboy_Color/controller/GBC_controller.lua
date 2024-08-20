@@ -11,79 +11,93 @@ joypad.get() table definition:
   "Up":     bool
 ]]
 
--- The input should adjust based off of the button size.
--- It would behoove you to keep the value divisible by 25.
-local BUTTON_SIZE = 25
-local FONT_SIZE = (math.floor(math.sqrt(BUTTON_SIZE)) -1) ^ 2 -- default is 12
-local DIRECTION_BASE = {
-  X = BUTTON_SIZE * 2,
-  Y = BUTTON_SIZE
-}
+local GBC_Controller = {}
+GBC_Controller.__index = GBC_Controller
 
-local START_SELECT_BASE = {
-  X = DIRECTION_BASE.X + (BUTTON_SIZE * 3) + 5,
-  Y = DIRECTION_BASE.Y + (BUTTON_SIZE * 2)
-}
-
-local AB_BASE = {
-  X = START_SELECT_BASE.X + (BUTTON_SIZE * 6),
-  Y = START_SELECT_BASE.Y
-}
-
-local WINDOW = {
-  WIDTH = BUTTON_SIZE * 16,
-  HEIGHT = BUTTON_SIZE * 7,
-}
-
-local myForm = forms.newform(WINDOW.WIDTH, WINDOW.HEIGHT, "Gameboy Controller Input Display")
-local pic = forms.pictureBox(myForm, 0, 0, WINDOW.WIDTH, WINDOW.HEIGHT)
-forms.drawRectangle(pic, 0, 0, WINDOW.WIDTH, WINDOW.HEIGHT, nil, "lightgray")
-
-function drawAB(x, y, pressed, message)
-  local background = pressed and "purple" or "white"
+function GBC_Controller:new(cell_size)
+  local instance = setmetatable({}, { __index = GBC_Controller })
   
-  forms.drawString(pic, x + (BUTTON_SIZE / 5), y - BUTTON_SIZE, message, "black", "white", FONT_SIZE)
-  forms.drawRectangle(pic, x, y, BUTTON_SIZE, BUTTON_SIZE, "purple", background)
+  instance.window = {
+    cell_size = cell_size,
+    width = cell_size * 16,
+    height = cell_size * 5
+  }
+  
+  instance.font_size = (math.floor(math.sqrt(cell_size)) -1) ^ 2 -- default is 12
+  instance.directional_position = {
+    X = cell_size * 2,
+    Y = cell_size
+  }
+  
+  instance.start_select_position = {
+    X = instance.directional_position.X + (cell_size * 3) + 5,
+    Y = instance.directional_position.Y + (cell_size * 2)
+  }
+  
+  instance.AB_position = {
+    X = instance.start_select_position.X + (cell_size * 6),
+    Y = instance.start_select_position.Y
+  }
+  
+  console.writeline("GBC_controller has ben instantiated successfully!")
+  console.writeline("Don't forget to call GBC_controller:set_picture_box(offset, form_handler) to set the display!")
+  console.writeline("")
+  
+  return instance
 end
 
-function drawDirection(x, y, pressed)
-  local background = pressed and "black" or "white"
-  
-  forms.drawRectangle(pic, x, y, BUTTON_SIZE, BUTTON_SIZE, "black", background)
+function GBC_Controller:set_picture_box(offset, form_handler)
+  self.offset = offset
+  self.pic = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height)
+  forms.drawRectangle(self.pic, 0, offset, self.window.width, self.window.height, nil, "lightgray")
 end
 
-function drawStartSelect(x, y, pressed, message)
-  local background = pressed and "black" or "white"
-  
-  forms.drawString(pic, x - (BUTTON_SIZE / 5), y - BUTTON_SIZE, message, "black", "white", FONT_SIZE)
-  forms.drawRectangle(pic, x, y, BUTTON_SIZE, BUTTON_SIZE / 2, "black", background)
-end
-
-function displayController()
+function GBC_Controller:display_controller()
+  forms.clear(self.pic, "white")
   local joypad = joypad.get()
 
   -- arrow directions
-  drawDirection(DIRECTION_BASE.X,               DIRECTION_BASE.Y,                     joypad["Up"])
-  drawDirection(DIRECTION_BASE.X - BUTTON_SIZE, DIRECTION_BASE.Y + BUTTON_SIZE,       joypad["Left"])
-  drawDirection(DIRECTION_BASE.X + BUTTON_SIZE, DIRECTION_BASE.Y + BUTTON_SIZE,       joypad["Right"])
-  drawDirection(DIRECTION_BASE.X,               DIRECTION_BASE.Y + (BUTTON_SIZE * 2), joypad["Down"])
+  self:_draw_direction(self.directional_position.X,                  self.directional_position.Y,                        joypad["Up"])
+  self:_draw_direction(self.directional_position.X - self.window.cell_size, self.directional_position.Y + self.window.cell_size,       joypad["Left"])
+  self:_draw_direction(self.directional_position.X + self.window.cell_size, self.directional_position.Y + self.window.cell_size,       joypad["Right"])
+  self:_draw_direction(self.directional_position.X,                  self.directional_position.Y + (self.window.cell_size * 2), joypad["Down"])
   
   -- draw dimple in center of control pad
-  forms.drawEllipse(pic, DIRECTION_BASE.X, DIRECTION_BASE.Y + BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE, "black", "gray")
+  forms.drawEllipse(self.pic, self.directional_position.X, self.directional_position.Y + self.window.cell_size, self.window.cell_size, self.window.cell_size, "black", "gray")
   
   -- Start/Select buttons
-  drawStartSelect(START_SELECT_BASE.X,                     START_SELECT_BASE.Y, joypad["Select"], "SELECT")
-  drawStartSelect(START_SELECT_BASE.X + (BUTTON_SIZE * 3), START_SELECT_BASE.Y, joypad["Start"],  "START")
+  self:_draw_start_select(self.start_select_position.X,                        self.start_select_position.Y, joypad["Select"], "SELECT")
+  self:_draw_start_select(self.start_select_position.X + (self.window.cell_size * 3), self.start_select_position.Y, joypad["Start"],  "START")
   
   -- B/A buttons (gameboy has the "B" button to the left of the "A" button)
-  drawAB(AB_BASE.X,                     AB_BASE.Y,               joypad["B"], "B")
-  drawAB(AB_BASE.X + (BUTTON_SIZE * 2), AB_BASE.Y - BUTTON_SIZE, joypad["A"], "A")
+  self:_draw_AB(self.AB_position.X,                        self.AB_position.Y,                  joypad["B"], "B")
+  self:_draw_AB(self.AB_position.X + (self.window.cell_size * 2), self.AB_position.Y - self.window.cell_size, joypad["A"], "A")
   
-  forms.refresh(pic)
+  forms.refresh(self.pic)
 end
 
-while true do
-  displayController()  
-
-  emu.frameadvance()
+function GBC_Controller:refresh()
+  forms.refresh(self.pic)
 end
+
+function GBC_Controller:_draw_direction(x, y, pressed)
+  local background = pressed and "black" or "white"
+  
+  forms.drawRectangle(self.pic, x, y, self.window.cell_size, self.window.cell_size, "black", background)
+end
+
+function GBC_Controller:_draw_start_select(x, y, pressed, message)
+  local background = pressed and "black" or "white"
+  
+  forms.drawString(self.pic, x - (self.window.cell_size / 5), y - self.window.cell_size, message, "black", "white", self.font_size)
+  forms.drawRectangle(self.pic, x, y, self.window.cell_size, self.window.cell_size / 2, "black", background)
+end
+
+function GBC_Controller:_draw_AB(x, y, pressed, message)
+  local background = pressed and "purple" or "white"
+  
+  forms.drawString(self.pic, x + (self.window.cell_size / 5), y - self.window.cell_size, message, "black", "white", self.font_size)
+  forms.drawRectangle(self.pic, x, y, self.window.cell_size, self.window.cell_size, "purple", background)
+end
+
+return GBC_Controller
