@@ -5,7 +5,7 @@ local Controller = dofile("../../controller/GBC_controller.lua")
 -- -- It would behoove you to keep the value divisible by 25.
 local cell_size = 25
 
-local map = Map:new(cell_size, false)
+local map = Map:new(cell_size, true)
 local controller = Controller:new(cell_size)
 
 local width = math.max(controller.window.width, map.window.width)
