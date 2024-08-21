@@ -131,7 +131,7 @@ function Map:_draw_axis_labels()
   for i, v in ipairs(axis_labels) do
     -- Y-Axis
     self:_draw_rectangle(0, dimension * (i - 1), dimension, dimension, "black", "black") 
-    self:_draw_string(self.pic, 0, (i - 1) * self.window.cell_size, v, "white", "black", 20)
+    self:_draw_string(0, (i - 1) * self.window.cell_size, v, "white", "black", 20)
     
     -- X-Axis
     self:_draw_rectangle(dimension * i, dimension * 16, dimension, dimension, "black", "black")
