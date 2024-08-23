@@ -9,5 +9,7 @@ return {
   water = "cyan",
   forest = "lightgreen",
   desert = "orange",
-  graveyard = "lightgray"
+  graveyard = "lightgray",
+  axis = "darkgray",
+  line = "black"
 }
