@@ -71,10 +71,7 @@ function Map:set_picture_box(offset, form_handler)
   self.pic.grid = forms.pictureBox(form_handler, 0, offset, self.window.width + cell_size, self.window.height + (cell_size))
   forms.drawRectangle(self.pic.grid, 0, 0, self.window.width, self.window.height, nil, "lightgray")
   
-  forms.clear(self.pic.grid, "white")
-  
-  self:_draw_axis_labels()
-  self:_draw_grid()
+  self:_draw_map()
 end
 
 function Map:display_minimap() 
@@ -90,14 +87,27 @@ end
 function Map:_draw_map()
   forms.clear(self.pic.grid, "white")
 
-  self:_draw_axis_labels()
-  self:_draw_grid()
-  self:_draw_current_position()
+  self:_draw_map_title(0)
+  local offset = self.window.cell_size
+  self:_draw_axis_labels(offset)
+  self:_draw_grid(offset)
+  self:_draw_current_position(offset)
   
   forms.refresh(self.pic.grid)
 end
 
-function Map:_draw_grid()
+function Map:_draw_map_title(offset)
+  local maps = self:_get_current_map_layout()
+  if not maps then
+    return -- no map data found
+  end
+  
+  local title = maps.title
+
+  forms.drawString(self.pic.grid, 0, 0, title, "black", "white", 20)
+end
+
+function Map:_draw_grid(offset)
   local background_color = ""
   local color_code = ""
     
@@ -114,12 +124,12 @@ function Map:_draw_grid()
       color_code = layout[row][col]
       background_color = self.cell_background_color[color_code]
       
-      forms.drawRectangle(self.pic.grid, dimension * col, dimension * row, dimension, dimension, "black", background_color)
+      forms.drawRectangle(self.pic.grid, dimension * col, offset + (dimension * row), dimension, dimension, self.color_codes.line, background_color)
     end
   end
 end
 
-function Map:_draw_current_position()
+function Map:_draw_current_position(offset)
   local divisor_size = self:_is_outside() and 16 or 8
   local position = self:_get_links_current_position()
   
@@ -135,22 +145,25 @@ function Map:_draw_current_position()
   local background = self.blinker.blink and self.color_codes.link or self.cell_background_color[color_code]
 
   local dimension = self:_cell_size_dimension()
-  forms.drawRectangle(self.pic.grid, dimension * (col), dimension * (row), dimension, dimension, "black", background)
+  forms.drawRectangle(self.pic.grid, dimension * (col), offset + (dimension * row), dimension, dimension, self.color_codes.line, background)
 end
 
-function Map:_draw_axis_labels()
+function Map:_draw_axis_labels(offset)
   local dimension = self:_cell_size_dimension()
   local scale_factor = self:_get_scale_factor()
   local axis_labels = self:_is_outside() and self.axis_labels.world_map or self.axis_labels.dungeon
   
+  -- draw top-left square
+  forms.drawRectangle(self.pic.grid, 0, offset, dimension * scale_factor, dimension * scale_factor, self.color_codes.axis, self.color_codes.axis)
+  
   for i, v in ipairs(axis_labels) do
     -- Y-Axis
-    forms.drawRectangle(self.pic.grid, 0, dimension * (i), dimension, dimension * scale_factor, "darkgray", "darkgray") 
-    forms.drawString(self.pic.grid, 0, dimension * (i), v, "black", "darkgray", 20 * scale_factor)
+    forms.drawRectangle(self.pic.grid, 0, offset + (dimension * i), dimension, dimension * scale_factor,self.color_codes.axis, self.color_codes.axis) 
+    forms.drawString(self.pic.grid, 0, offset + (dimension * i), v, self.color_codes.line, self.color_codes.axis, 20 * scale_factor)
     
     -- X-Axis
-    forms.drawRectangle(self.pic.grid, dimension * (i), 0, dimension * scale_factor, dimension, "darkgray", "darkgray")
-    forms.drawString(self.pic.grid, dimension * (i), 0, v, "black", "darkgray", 20 * scale_factor)
+    forms.drawRectangle(self.pic.grid, (dimension * i), offset, dimension * scale_factor, dimension, self.color_codes.axis, self.color_codes.axis)
+    forms.drawString(self.pic.grid, (dimension * i), offset, v, self.color_codes.line, self.color_codes.axis, 20 * scale_factor)
   end
 end
 
