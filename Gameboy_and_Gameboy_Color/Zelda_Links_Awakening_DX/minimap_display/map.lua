@@ -11,7 +11,7 @@ function Map:new(cell_size, display_axis)
   instance.window = {
     cell_size = cell_size,
     width  = cell_size * 18,
-    height = cell_size * 19
+    height = cell_size * 20
   }
   
   instance.font_size = (math.floor(math.sqrt(cell_size)) -1) ^ 2 -- default is 12
@@ -56,9 +56,7 @@ function Map:new(cell_size, display_axis)
   instance.blinker = Blinker:new(20)
   
   instance.pic = {
-    grid = 0,
-    x_axis = 0,
-    y_axis = 0
+    grid = 0
   }
   
   console.writeline("Map has ben instantiated successfully!")
@@ -69,37 +67,34 @@ function Map:new(cell_size, display_axis)
 end
 
 function Map:set_picture_box(offset, form_handler)
-  self.offset = offset
+  local cell_size = self.window.cell_size
+  self.pic.grid = forms.pictureBox(form_handler, 0, offset, self.window.width + cell_size, self.window.height + (cell_size))
+  forms.drawRectangle(self.pic.grid, 0, 0, self.window.width, self.window.height, nil, "lightgray")
   
-  -- outside
-  self.pic.x_axis = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.cell_size)
-  self:_draw_rectangle(self.pic.x_axis, 0, 0, self.window.width, self.window.cell_size * 2, nil, "lightgray")
+  forms.clear(self.pic.grid, "white")
   
-  self.pic.y_axis = forms.pictureBox(form_handler, 0, offset, self.window.cell_size, self.window.height)
-  self:_draw_rectangle(self.pic.y_axis, 0, 0, self.window.cell_size * 2, self.window.height, nil, "lightgray")
-  
-  self.pic.grid = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height)
-  self:_draw_rectangle(self.pic.grid, 0, 0, self.window.width, self.window.height, nil, "lightgray")
+  self:_draw_axis_labels()
+  self:_draw_grid()
 end
 
-function Map:display_minimap()
-  for _, v in pairs(self.pic) do
-    forms.clear(v, "white")
-  end
-  
+function Map:display_minimap() 
   if self.blinker:is_ready_to_blink() then
     self.blinker:flip()
   end
+  
+  self:_draw_map()
+
+  self.blinker:increment()
+end
+
+function Map:_draw_map()
+  forms.clear(self.pic.grid, "white")
 
   self:_draw_axis_labels()
   self:_draw_grid()
   self:_draw_current_position()
-
-  self.blinker:increment()
   
-  for _, v in pairs(self.pic) do
-    forms.refresh(v)
-  end
+  forms.refresh(self.pic.grid)
 end
 
 function Map:_draw_grid()
@@ -119,7 +114,7 @@ function Map:_draw_grid()
       color_code = layout[row][col]
       background_color = self.cell_background_color[color_code]
       
-      self:_draw_rectangle(self.pic.grid, dimension * col, dimension * row, dimension, dimension, "black", background_color)
+      forms.drawRectangle(self.pic.grid, dimension * col, dimension * row, dimension, dimension, "black", background_color)
     end
   end
 end
@@ -140,23 +135,22 @@ function Map:_draw_current_position()
   local background = self.blinker.blink and self.color_codes.link or self.cell_background_color[color_code]
 
   local dimension = self:_cell_size_dimension()
-  self:_draw_rectangle(self.pic.grid, dimension * (col), dimension * (row), dimension, dimension, "black", background)
+  forms.drawRectangle(self.pic.grid, dimension * (col), dimension * (row), dimension, dimension, "black", background)
 end
 
 function Map:_draw_axis_labels()
   local dimension = self:_cell_size_dimension()
-  local scale_factor = self:_is_outside() and 1 or 2
-  local text_offset = self:_is_outside() and 0 or (math.floor(self.window.cell_size / 2))
+  local scale_factor = self:_get_scale_factor()
   local axis_labels = self:_is_outside() and self.axis_labels.world_map or self.axis_labels.dungeon
   
   for i, v in ipairs(axis_labels) do
     -- Y-Axis
-    self:_draw_rectangle(self.pic.y_axis, 0, dimension * (i), dimension * scale_factor, dimension, "darkgray", "darkgray") 
-    self:_draw_string(self.pic.y_axis, 0, dimension * (i) + text_offset, v, "black", "darkgray", 20)
+    forms.drawRectangle(self.pic.grid, 0, dimension * (i), dimension, dimension * scale_factor, "darkgray", "darkgray") 
+    forms.drawString(self.pic.grid, 0, dimension * (i), v, "black", "darkgray", 20 * scale_factor)
     
     -- X-Axis
-    self:_draw_rectangle(self.pic.x_axis, dimension * (i), 0, dimension, dimension * scale_factor, "darkgray", "darkgray")
-    self:_draw_string(self.pic.x_axis, dimension * (i) + text_offset, 0, v, "black", "darkgray", 20)
+    forms.drawRectangle(self.pic.grid, dimension * (i), 0, dimension * scale_factor, dimension, "darkgray", "darkgray")
+    forms.drawString(self.pic.grid, dimension * (i), 0, v, "black", "darkgray", 20 * scale_factor)
   end
 end
 
@@ -215,14 +209,12 @@ function Map:_cell_size_dimension()
   return self.window.cell_size * 2
 end
 
--- wrapper to draw a rectangle where the inputs are easier to read 
-function Map:_draw_rectangle(pic_box_handler, x, y, width, height, foreground, background)
-  forms.drawRectangle(pic_box_handler, x, y, width, height, foreground, background) 
-end
-
--- wrapper to draw text where the inputs are easier to read
-function Map:_draw_string(pic_box_handler, x, y, message, foreground, background, font_size)
-  forms.drawString(pic_box_handler, x, y, message, foreground, background, font_size)
+function Map:_get_scale_factor()
+  if self:_is_outside() then
+    return 1
+  end
+  
+  return 2
 end
 
 return Map
