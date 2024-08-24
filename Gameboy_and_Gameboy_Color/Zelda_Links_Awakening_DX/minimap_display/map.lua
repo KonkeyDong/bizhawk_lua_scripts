@@ -24,17 +24,14 @@ function Map:new(cell_size, display_axis)
   
   instance.color_codes = color_codes
   instance.cell_background_color = {
+    [-1] = instance.color_codes.no_value,
     [0] = instance.color_codes.empty,
     [1] = instance.color_codes.room,
     [2] = instance.color_codes.dungeon_entrance,
     [3] = instance.color_codes.instrument,
     [4] = instance.color_codes.link,
     [5] = instance.color_codes.boss,
-    [6] = instance.color_codes.dungeon,
-    [7] = instance.color_codes.water,
-    [8] = instance.color_codes.forest,
-    [9] = instance.color_codes.desert,
-    [10] = instance.color_codes.graveyard
+    [6] = instance.color_codes.dungeon_entrance_outdoors
   }
   
   instance.map_data = map_data
@@ -58,6 +55,10 @@ function Map:new(cell_size, display_axis)
   instance.pic = {
     grid = 0
   }
+  
+  -- full path to file. on windows, it might be:
+  -- "C:\\Users\\Larry\\path\\to\\world_map_gbc_no_grid.png"
+  instance.image_path = "C:\\path\\to\\world_map_gbc_no_grid.png"
   
   console.writeline("Map has ben instantiated successfully!")
   console.writeline("Don't forget to call Map:set_picture_box(offset, form_handler) to set the display!")
@@ -117,8 +118,9 @@ function Map:_draw_grid(offset)
   end
   
   local layout = maps.layout
-    
+  
   local dimension = self:_cell_size_dimension()
+  forms.drawImage(self.pic.grid, self.image_path, dimension, offset + dimension)
   for row = 1, #layout do
     for col = 1, #layout[row] do
       color_code = layout[row][col]

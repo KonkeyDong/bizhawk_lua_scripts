@@ -1,15 +1,12 @@
 return {
+  no_value = nil,
   empty = "black",
   room  = "white",
   dungeon_entrance = "green",
   instrument = "magenta",
   link = "yellow",
   boss = "red",
-  dungeon = "brown",
-  water = "cyan",
-  forest = "lightgreen",
-  desert = "orange",
-  graveyard = "lightgray",
+  dungeon_entrance_outdoors = "magenta",
   axis = "darkgray",
   line = "black"
 }
