@@ -31,7 +31,9 @@ function Map:new(cell_size, display_axis)
     [3] = instance.color_codes.instrument,
     [4] = instance.color_codes.link,
     [5] = instance.color_codes.boss,
-    [6] = instance.color_codes.dungeon_entrance_outdoors
+    [6] = instance.color_codes.dungeon_entrance_outdoors,
+    [7] = instance.color_codes.link_green,
+    [8] = instance.color_codes.link_skin
   }
   
   instance.map_data = map_data
@@ -90,9 +92,15 @@ function Map:_draw_map()
 
   self:_draw_map_title(0)
   local offset = self.window.cell_size
-  self:_draw_axis_labels(offset)
-  self:_draw_grid(offset)
-  self:_draw_current_position(offset)
+  
+  local maps = self:_get_current_map_layout()
+  if not maps then
+    self:_draw_link_sprite(offset)
+  else
+    self:_draw_axis_labels(offset)
+    self:_draw_grid(offset)
+    self:_draw_current_position(offset)
+  end
   
   forms.refresh(self.pic.grid)
 end
@@ -100,12 +108,28 @@ end
 function Map:_draw_map_title(offset)
   local maps = self:_get_current_map_layout()
   if not maps then
-    return -- no map data found
+    forms.drawString(self.pic.grid, 0, 0, "Caves / Indoors", "black", "white", 20)
+    return
   end
   
   local title = maps.title
 
   forms.drawString(self.pic.grid, 0, 0, title, "black", "white", 20)
+end
+
+function Map:_draw_link_sprite(offset)
+  local maps = self:_get_link_sprite()
+  local layout = maps.layout
+  local dimension = self.window.cell_size
+  
+  for row = 1, #layout do
+    for col = 1, #layout[row] do
+      color_code = layout[row][col]
+      background_color = self.cell_background_color[color_code]
+      
+      forms.drawRectangle(self.pic.grid, dimension * col, offset + (dimension * row), dimension, dimension, "none", background_color)
+    end
+  end
 end
 
 function Map:_draw_grid(offset)
@@ -120,7 +144,11 @@ function Map:_draw_grid(offset)
   local layout = maps.layout
   
   local dimension = self:_cell_size_dimension()
-  forms.drawImage(self.pic.grid, self.image_path, dimension, offset + dimension)
+  
+  if self:_is_outside() then
+    forms.drawImage(self.pic.grid, self.image_path, dimension, offset + dimension)
+  end
+  
   for row = 1, #layout do
     for col = 1, #layout[row] do
       color_code = layout[row][col]
@@ -206,6 +234,12 @@ function Map:_get_current_map_layout()
   end
   
   return self.map_data[key]
+end
+
+function Map:_get_link_sprite()
+  local sprite = self.blinker.blink and self.map_data.link_walking_01 or self.map_data.link_walking_02
+  
+  return self.map_data[sprite]
 end
 
 function Map:_get_links_current_position()

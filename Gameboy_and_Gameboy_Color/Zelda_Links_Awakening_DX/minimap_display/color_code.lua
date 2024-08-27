@@ -8,5 +8,7 @@ return {
   boss = "red",
   dungeon_entrance_outdoors = "magenta",
   axis = "darkgray",
-  line = "black"
+  line = "black",
+  link_green = "#10AD42",
+  link_skin = "#FFBD8C",
 }
