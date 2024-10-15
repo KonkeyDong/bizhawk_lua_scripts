@@ -52,7 +52,7 @@ function Map:new(cell_size, display_axis)
   end
   
   -- blinker
-  instance.blinker = Blinker:new(20)
+  instance.blinker = Blinker:new(16)
   
   instance.pic = {
     grid = 0
