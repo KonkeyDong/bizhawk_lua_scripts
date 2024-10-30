@@ -23,7 +23,7 @@ function DonkeyKong:next_frame()
     self.frame_delay_counter = self.frame_delay 
   end
   
-  if self.current_frame > 20 then
+  if self.current_frame > #self.frames then
     self.current_frame = 1
   end
   
