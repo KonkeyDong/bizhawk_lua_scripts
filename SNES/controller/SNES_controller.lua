@@ -95,8 +95,8 @@ function SNES_Controller:display_controller()
   self:_draw_LR(self.LR_position.X,     self.LR_position.Y, joypad["P1 L"], "L")
   
   -- R
-  self:_draw_string((self.LR_position.X * 8) - (self.window.cell_size / 5) + self.window.cell_size * 2, self.LR_position.Y - self.window.cell_size, "R", "black", "white", self.font_size)
-  self:_draw_LR(self.LR_position.X * 8, self.LR_position.Y, joypad["P1 R"], "R")
+  self:_draw_string((self.LR_position.X * 9) - (self.window.cell_size / 5) + self.window.cell_size * 2, self.LR_position.Y - self.window.cell_size, "R", "black", "white", self.font_size)
+  self:_draw_LR(self.LR_position.X * 9, self.LR_position.Y, joypad["P1 R"], "R")
   
   forms.refresh(self.pic)
 end
