@@ -36,6 +36,12 @@ function Stats_Overlay:new()
     end
     instance.images = images
 
+    -- Digit images (0-9)
+    instance.digits = {}
+    for i = 0, 9 do
+        instance.digits[i] = base_path .. "numbers\\" .. i .. ".png"
+    end
+
     -- Create bars dynamically
     instance.bars = {}
     for i = 1, 4 do
@@ -55,6 +61,25 @@ function Stats_Overlay:new()
         })
     end
 
+    instance.adjust_panel = {
+        steps   = {100, 10, 1},                    -- left/mid/right step sizes
+        x_pos   = {380, 436, 489},                 -- left/mid/right x
+        y_inc   = 30,                              -- top row y
+        y_dec   = 153,                             -- bottom row y
+        width   = 49,
+        height  = 28,
+        target_address = 0x081A                    -- ← CHANGE THIS to the memory address you want to adjust
+                                                   -- (e.g. 0x081C for shot height, or a different one)
+    }
+
+    instance.distance_panel = {
+        width = 40,
+        height = 80,
+        x_pos = {386, 439, 491},
+        y_pos = 65,
+        address = 0x081A
+    }
+
     memory.usememorydomain("WRAM")
 
     console.writeline("Stats_Overlay has ben instantiated successfully!")
@@ -73,7 +98,49 @@ function Stats_Overlay:get_image_name(value)
     return "neutral"
 end
 
-function Stats_Overlay:onClick()
+function Stats_Overlay:onChevronClick()
+    -- Adjustment panel clicks (after bars loop)
+    local panel = self.adjust_panel
+    local mx = forms.getMouseX(self.pic)
+    local my = forms.getMouseY(self.pic)
+
+    for col = 1, 3 do
+        local step = panel.steps[col]
+        local x    = panel.x_pos[col]
+
+        -- Top button (+)
+        local top_y = panel.y_inc
+        if mx >= x and mx <= x + panel.width and
+           my >= top_y and my <= top_y + panel.height then
+            local val = memory.read_s16_le(panel.target_address)
+
+            if val + step <= 500 then
+                memory.write_s16_le(panel.target_address, val + step)
+            else
+                memory.write_s16_le(panel.target_address, 500)
+            end
+            -- optional: clamp if desired → math.min(127, val + step)
+            return
+        end
+
+        -- Bottom button (−)
+        local bot_y = panel.y_dec
+        if mx >= x and mx <= x + panel.width and
+           my >= bot_y and my <= bot_y + panel.height then
+            local val = memory.read_s16_le(panel.target_address)
+
+            if val - step >= 150 then
+                memory.write_s16_le(panel.target_address, val - step)
+            else
+                memory.write_s16_le(panel.target_address, 150)
+            end
+            -- optional: clamp → math.max(-128, val - step)
+            return
+        end
+    end
+end
+
+function Stats_Overlay:onBarClick()
     local mouse_x = forms.getMouseX(self.pic)
     local mouse_y = forms.getMouseY(self.pic)
 
@@ -110,11 +177,54 @@ function Stats_Overlay:onClick()
     -- console.log("Click outside button areas")
 end
 
+function Stats_Overlay:get_digits(value)
+    -- Assuming unsigned 16-bit (0–65535), but clamp to 0–999 for 3 digits
+    value = math.max(0, math.min(999, value))
+    
+    local hundreds = math.floor(value / 100)
+    local tens     = math.floor((value % 100) / 10)
+    local ones     = value % 10
+    
+    return hundreds, tens, ones
+end
+
+function Stats_Overlay:draw_distance_panel()
+    local panel = self.distance_panel
+    local value = memory.read_u16_le(panel.address)   -- unsigned 16-bit read
+    
+    local h, t, o = self:get_digits(value)
+    
+    -- Draw hundreds (left)
+    forms.drawImage(
+        self.pic,
+        self.digits[h],
+        panel.x_pos[1], panel.y_pos,
+        panel.width, panel.height
+    )
+    
+    -- Draw tens (middle)
+    forms.drawImage(
+        self.pic,
+        self.digits[t],
+        panel.x_pos[2], panel.y_pos,
+        panel.width, panel.height
+    )
+    
+    -- Draw ones (right)
+    forms.drawImage(
+        self.pic,
+        self.digits[o],
+        panel.x_pos[3], panel.y_pos,
+        panel.width, panel.height
+    )
+end
+
 function Stats_Overlay:set_picture_box(offset, form_handler)
     self.offset = offset
     self.pic = forms.pictureBox(form_handler, 0, offset, self.window.width, self.window.height)
 
-    forms.addclick(self.pic, function() self:onClick() end)
+    forms.addclick(self.pic, function() self:onBarClick() end)
+    forms.addclick(self.pic, function() self:onChevronClick() end)
 
     -- Initial background
     forms.drawRectangle(self.pic, 0, 0, self.window.width, self.window.height, nil, "white")
@@ -124,17 +234,19 @@ function Stats_Overlay:draw_overlay()
     -- Clear background
     forms.drawRectangle(self.pic, 0, 0, self.window.width, self.window.height, nil, "white")
 
-    -- Main overlay
+    -- Main overlay image
     forms.drawImage(self.pic, self.images.overlay, 0, 0)
 
-    -- Dynamic bars
+    -- Existing dynamic bars
     for _, b in ipairs(self.bars) do
         local value = memory.read_s8(b.address)
         local img_name = self:get_image_name(value)
         forms.drawImage(self.pic, self.images[img_name], b.x, b.y)
     end
 
-    -- Optional: force refresh (helps some BizHawk versions)
+    -- New: Draw the 3-digit distance panel
+    self:draw_distance_panel()
+
     forms.refresh(self.pic)
 end
 
